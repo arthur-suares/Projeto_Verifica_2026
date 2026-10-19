@@ -319,3 +319,34 @@ Resposta:
 ```
 
 ---
+
+## Feedback pedagógico e estimativas BKT
+
+O `BKTEngine` atualiza a observação por Bayes e aplica a transição depois do acerto/erro. Para acerto, `P(L|C)=L(1-S)/(L(1-S)+(1-L)G)`; para erro, `P(L|I)=LS/(LS+(1-L)(1-G))`; em seguida `L_next=posterior+(1-posterior)T`. Cada resposta é associada à skill da questão, e o estado persistido continua sendo a fonte da mastery entre partidas. A LLM não altera nem grava esse valor.
+
+Os quatro trackers usam a configuração centralizada em `backend/app/bkt/parameters.py`: `p_init=0.30`, `p_guess=0.20`, `p_slip=0.05`, `p_transition=0.10`. São defaults provisórios, iguais para as quatro habilidades e **não estimados com os usuários**. Uma simulação fixa de 10 acertos/erros, variando um parâmetro por vez em faixas moderadas, produziu mastery final entre `0.703` e `0.917` (amplitude de 21,4 pontos percentuais). Portanto, diferenças de parâmetros podem ser materialmente relevantes; não há ajuste automático nem alegação de validação empírica.
+
+`GET /api/users/me/skills` mantém a mastery BKT separada de `accuracy` e acrescenta tentativas, acertos, erros, parâmetros/versionamento e até seis pontos cronológicos recalculados pelo mesmo motor. O perfil também inclui feedback estruturado (`summary`, `strengths`, `improvement_areas`, `next_step`, `confidence_note`). Estatísticas enviadas ao provider são agregadas por skill; IDs, dados pessoais, notícias e alternativas escolhidas não são enviados.
+
+O provider é opcional e usa o endpoint OpenAI-compatible Chat Completions, configurado somente no backend. O exemplo em `backend/.env.example` aponta para o Ollama local; o valor `ollama` da chave é exigido pelo formato compatível, mas o servidor local o ignora. Ollama documenta esse endpoint e o modo JSON em sua [documentação de compatibilidade OpenAI](https://docs.ollama.com/api/openai-compatibility).
+
+```env
+FEEDBACK_LLM_API_KEY=ollama
+FEEDBACK_LLM_BASE_URL=http://localhost:11434/v1
+FEEDBACK_LLM_MODEL=qwen3:8b
+FEEDBACK_LLM_TIMEOUT_SECONDS=8
+FEEDBACK_LLM_MIN_ATTEMPTS=4
+```
+
+A chamada só ocorre com pelo menos quatro tentativas totais e três em uma mesma habilidade. Sem histórico suficiente ou chave, em timeout, indisponibilidade ou JSON/schema inválido, o serviço retorna recomendações locais por habilidade; o perfil BKT continua disponível. Os status aparecem em `feedback_status`. O cliente nunca recebe a chave. Não coloque segredos no repositório.
+
+Para experimentar com um modelo local sem cobrança por chamada:
+
+1. Instale e inicie o [Ollama](https://ollama.com/download), depois baixe o modelo configurado: `ollama pull qwen3:8b`.
+2. Copie `backend/.env.example` para `backend/.env` (ou defina as mesmas variáveis no ambiente do backend). Se o Ollama estiver em outra máquina ou container, ajuste `FEEDBACK_LLM_BASE_URL` para que o backend consiga alcançá-lo.
+3. Reinicie o backend e use o jogo até registrar ao menos quatro respostas no total, incluindo três da mesma habilidade. O limite existe para evitar conclusões personalizadas com evidência muito pequena.
+4. Entre na aplicação e abra **Minhas habilidades**. Para confirmar o resultado técnico, consulte `GET /api/users/me/skills` autenticado: `feedback_status: "generated"` significa que a resposta do modelo passou pela validação. `invalid_response` indica que o modelo respondeu, mas o JSON não passou pelo schema; `provider_error` indica timeout/indisponibilidade. Nesses casos, o endpoint e o BKT continuam disponíveis com fallback local.
+
+Os testes automatizados não precisam do Ollama nem fazem chamadas de rede: rode `cd backend && python3 -m pytest -q tests/test_skill_feedback.py tests/integration/test_process_answer.py`. Eles substituem o transporte HTTP por mocks e cobrem resposta válida, timeout, histórico insuficiente, resposta inválida e preservação do estado BKT. A chamada real requer Ollama em execução; o frontend exibe o status, mas não expõe a chave.
+
+---

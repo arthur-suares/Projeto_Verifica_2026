@@ -15,6 +15,7 @@ from app.services.answer import (
     AnswerNotFoundError,
     AnswerService,
 )
+from app.services.skill_feedback import SkillFeedbackService
 from app.schemas import AnswerCreate, AnswerResponse, UserSkillProfileResponse
 
 router = APIRouter(prefix="/api", tags=["skills"])
@@ -45,17 +46,14 @@ def get_user_skills(
     """
     try:
         profile = AnswerService.get_user_skill_profile(db, user_id)
-        
+        feedback, feedback_status = SkillFeedbackService.generate(profile)
+
         return {
-            "skills": [
-                {
-                    "skill_id": s["skill_id"],
-                    "skill_code": s["skill_code"],
-                    "mastery_probability": s["mastery_probability"],
-                    "updated_at": s["updated_at"],
-                }
-                for s in profile["skills"]
-            ]
+            "skills": profile["skills"],
+            "feedback": feedback,
+            "feedback_status": feedback_status,
+            "bkt_version": profile["bkt_version"],
+            "parameter_status": profile["parameter_status"],
         }
     except Exception as error:
         raise HTTPException(

@@ -17,6 +17,11 @@ class Settings(BaseSettings):
     )
     database_url: str = "sqlite:///./fact_check.db"
     secret_key: str = "dev-secret-key"
+    feedback_llm_api_key: str = ""
+    feedback_llm_base_url: str = "https://api.openai.com/v1"
+    feedback_llm_model: str = "gpt-4o-mini"
+    feedback_llm_timeout_seconds: float = Field(default=8.0, gt=0, le=30)
+    feedback_llm_min_attempts: int = Field(default=4, ge=1, le=100)
 
     model_config = SettingsConfigDict(
         # .env na raiz do repositório ou em backend/ (o último tem prioridade)

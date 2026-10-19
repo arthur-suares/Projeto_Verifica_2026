@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Any
+from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -76,13 +76,61 @@ class UserSkillStateResponse(BaseModel):
 
     skill_id: str
     skill_code: str
+    skill_name: str
+    description: str | None = None
     mastery_probability: float
     updated_at: datetime
+    attempts: int = Field(ge=0)
+    correct_count: int = Field(ge=0)
+    incorrect_count: int = Field(ge=0)
+    accuracy: float | None = Field(default=None, ge=0, le=1)
+    insufficient_evidence: bool
+    bkt_parameters: dict[str, float]
+    trajectory: list["SkillTrajectoryPoint"] = Field(max_length=6)
+
+
+class SkillTrajectoryPoint(BaseModel):
+    attempt: int = Field(ge=1)
+    created_at: datetime
+    mastery_probability: float = Field(ge=0, le=1)
+
+
+class SkillFeedbackStrength(BaseModel):
+    skill: Literal["SOURCE", "EVIDENCE", "CONTEXT", "VISUAL"]
+    title: str = Field(min_length=1, max_length=100)
+    explanation: str = Field(min_length=1, max_length=350)
+
+
+class SkillFeedbackArea(BaseModel):
+    skill: Literal["SOURCE", "EVIDENCE", "CONTEXT", "VISUAL"]
+    title: str = Field(min_length=1, max_length=100)
+    observed_pattern: str = Field(min_length=1, max_length=300)
+    recommendation: str = Field(min_length=1, max_length=350)
+    exercise: str = Field(min_length=1, max_length=350)
+    reflection_question: str = Field(min_length=1, max_length=200)
+
+
+class PersonalizedSkillFeedback(BaseModel):
+    summary: str = Field(min_length=1, max_length=500)
+    strengths: list[SkillFeedbackStrength] = Field(max_length=3)
+    improvement_areas: list[SkillFeedbackArea] = Field(max_length=3)
+    next_step: str = Field(min_length=1, max_length=250)
+    confidence_note: str = Field(min_length=1, max_length=300)
 
 
 class UserSkillProfileResponse(BaseModel):
     """User's complete skill profile."""
     skills: list[UserSkillStateResponse]
+    feedback: PersonalizedSkillFeedback
+    feedback_status: Literal[
+        "generated",
+        "insufficient_data",
+        "provider_unconfigured",
+        "provider_error",
+        "invalid_response",
+    ]
+    bkt_version: str
+    parameter_status: str
 
 
 class NewsResponse(BaseModel):
