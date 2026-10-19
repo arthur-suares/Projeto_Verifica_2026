@@ -186,8 +186,61 @@ export interface Answer {
 export interface UserSkillState {
   skill_id: string
   skill_code: SkillCode
+  skill_name: string
+  description?: string | null
   mastery_probability: number
   updated_at: string
+  attempts: number
+  correct_count: number
+  incorrect_count: number
+  accuracy: number | null
+  insufficient_evidence: boolean
+  bkt_parameters: Record<string, number>
+  trajectory: SkillTrajectoryPoint[]
+}
+
+export interface SkillTrajectoryPoint {
+  attempt: number
+  created_at: string
+  mastery_probability: number
+}
+
+export interface SkillFeedbackStrength {
+  skill: SkillCode
+  title: string
+  explanation: string
+}
+
+export interface SkillFeedbackArea {
+  skill: SkillCode
+  title: string
+  observed_pattern: string
+  recommendation: string
+  exercise: string
+  reflection_question: string
+}
+
+export interface PersonalizedSkillFeedback {
+  summary: string
+  strengths: SkillFeedbackStrength[]
+  improvement_areas: SkillFeedbackArea[]
+  next_step: string
+  confidence_note: string
+}
+
+export type SkillFeedbackStatus =
+  | "generated"
+  | "insufficient_data"
+  | "provider_unconfigured"
+  | "provider_error"
+  | "invalid_response"
+
+export interface UserSkillProfileResponse {
+  skills: UserSkillState[]
+  feedback: PersonalizedSkillFeedback
+  feedback_status: SkillFeedbackStatus
+  bkt_version: string
+  parameter_status: string
 }
 
 // Payload de POST /api/games/{game_id}/answers (AnswerCreate no backend)

@@ -7,12 +7,12 @@ import { AlertCircle, Loader2, RotateCcw } from "lucide-react"
 import { SkillProfile } from "@/components/profile/skill-profile"
 import { Button, buttonVariants } from "@/components/ui/button"
 import { describeApiError, getUserSkills, isAuthenticationError } from "@/lib/game-api"
-import type { UserSkillState } from "@/lib/types"
+import type { UserSkillProfileResponse } from "@/lib/types"
 import { cn } from "@/lib/utils"
 
 type ProfileState =
   | { phase: "loading" }
-  | { phase: "loaded"; skills: UserSkillState[] }
+  | { phase: "loaded"; profile: UserSkillProfileResponse }
   | { phase: "error"; message: string; requiresLogin: boolean }
 
 export default function ProfilePage() {
@@ -23,8 +23,8 @@ export default function ProfilePage() {
     let active = true
     setState({ phase: "loading" })
     getUserSkills().then(
-      (skills) => {
-        if (active) setState({ phase: "loaded", skills })
+      (profile) => {
+        if (active) setState({ phase: "loaded", profile })
       },
       (error: unknown) => {
         if (active) {
@@ -69,5 +69,5 @@ export default function ProfilePage() {
     )
   }
 
-  return <SkillProfile skills={state.skills} />
+  return <SkillProfile profile={state.profile} />
 }

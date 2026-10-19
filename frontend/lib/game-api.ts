@@ -6,6 +6,7 @@ import type {
   GameRoundPayload,
   Skill,
   UserSkillState,
+  UserSkillProfileResponse,
 } from "@/lib/types"
 
 const API_URL = (process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000").replace(/\/$/, "")
@@ -116,9 +117,8 @@ export async function submitAnswer(gameId: string, payload: AnswerSubmission): P
   })
 }
 
-export async function getUserSkills(): Promise<UserSkillState[]> {
-  const response = await request<{ skills: UserSkillState[] }>("/api/users/me/skills")
-  return response.skills
+export async function getUserSkills(): Promise<UserSkillProfileResponse> {
+  return request<UserSkillProfileResponse>("/api/users/me/skills")
 }
 
 export type { Answer, AnswerResponse, AnswerSubmission, Game, GameRoundPayload, Skill, UserSkillState }

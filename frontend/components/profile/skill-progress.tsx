@@ -10,8 +10,11 @@ export function SkillProgress({ skill }: SkillProgressProps) {
   return (
     <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
       <div className="mb-2 flex items-center justify-between gap-2">
-        <span className="font-medium text-slate-800">{skill.skill_code}</span>
-        <span className="text-sm text-slate-600">{value.toFixed(0)}%</span>
+        <div className="flex flex-col">
+          <span className="font-medium text-slate-800">{skill.skill_name}</span>
+          <span className="text-xs text-slate-500">{skill.skill_code} · domínio estimado BKT</span>
+        </div>
+        <span className="text-sm font-semibold text-slate-700">{value.toFixed(0)}%</span>
       </div>
       <div className="h-2.5 overflow-hidden rounded-full bg-slate-200">
         <div
@@ -19,6 +22,14 @@ export function SkillProgress({ skill }: SkillProgressProps) {
           style={{ width: `${value}%` }}
         />
       </div>
+      <p className="mt-2 text-xs text-slate-600">
+        {skill.attempts} tentativa(s): {skill.correct_count} acertos e {skill.incorrect_count} erros.
+      </p>
+      {skill.attempts === 0 ? (
+        <p className="mt-1 text-xs text-amber-700">Estimativa inicial; ainda não há respostas registradas.</p>
+      ) : skill.insufficient_evidence ? (
+        <p className="mt-1 text-xs text-amber-700">Histórico curto para uma interpretação individualizada.</p>
+      ) : null}
     </div>
   )
 }
