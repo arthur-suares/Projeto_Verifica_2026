@@ -74,3 +74,15 @@ def test_invalid_skill_error_is_a_value_error():
 def test_bkt_manager_rejects_invalid_mastery():
     with pytest.raises(ValueError):
         BKTManager.update("SOURCE", 1.5, correct=True)
+
+
+def test_bkt_parameters_are_centralized_and_marked_provisional():
+    for skill_code in BKTManager.VALID_SKILLS:
+        parameters = BKTManager.get_tracker(skill_code).get_parameters()
+        assert parameters == {
+            "p_init": 0.30,
+            "p_guess": 0.20,
+            "p_slip": 0.05,
+            "p_transition": 0.10,
+        }
+        assert BKTManager.get_initial_mastery(skill_code) == parameters["p_init"]

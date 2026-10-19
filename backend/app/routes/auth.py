@@ -3,6 +3,7 @@ from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.models import User, UserSkillState
+from app.bkt.manager import BKTManager
 from app.repositories.skill_repository import SkillRepository
 from app.schemas import UserCreate, UserLogin
 from app.security import (
@@ -44,7 +45,7 @@ def register(user: UserCreate, db: Session = Depends(get_db)):
                 UserSkillState(
                     user_id=new_user.id,
                     skill_id=skill.id,
-                    mastery_probability=0.3,
+                    mastery_probability=BKTManager.get_initial_mastery(skill.code),
                 )
             )
         db.commit()

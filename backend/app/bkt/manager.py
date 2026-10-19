@@ -116,3 +116,8 @@ class BKTManager:
             True if valid, False otherwise
         """
         return skill_code in cls._TRACKERS
+
+    @classmethod
+    def get_initial_mastery(cls, skill_code: str) -> float:
+        """Return the configured P(L0) for a tracked skill."""
+        return cls.get_tracker(skill_code).get_parameters()["p_init"]

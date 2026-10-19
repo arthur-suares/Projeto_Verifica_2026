@@ -6,23 +6,17 @@ Tracks user's ability to evaluate if an image really supports the presented clai
 
 from app.bkt.base import SkillTracker
 from app.bkt.engine import BKTEngine
+from app.bkt.parameters import get_bkt_parameters
 
 
 class VisualTracker(SkillTracker):
     """Tracker for VISUAL skill: evaluating image-claim relationships."""
 
-    # VISUAL-specific BKT parameters
-    P_GUESS = 0.20      # Probability of guessing correctly about image-claim relationship
-    P_SLIP = 0.05       # Probability of slipping
-    P_TRANSITION = 0.10 # Probability of learning from one attempt
+    PARAMETERS = get_bkt_parameters("VISUAL")
 
     def __init__(self):
         """Initialize the VISUAL tracker with appropriate parameters."""
-        self.engine = BKTEngine(
-            p_guess=self.P_GUESS,
-            p_slip=self.P_SLIP,
-            p_transition=self.P_TRANSITION,
-        )
+        self.engine = BKTEngine(**self.PARAMETERS)
 
     def update(self, mastery: float, correct: bool) -> float:
         """

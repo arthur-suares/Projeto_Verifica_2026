@@ -7,6 +7,7 @@ Does not directly handle HTTP concerns or database access (delegates to reposito
 
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
+from app.bkt.manager import BKTManager
 
 from app.repositories.answer_repository import AnswerRepository
 from app.repositories.game_repository import GameRepository
@@ -182,7 +183,7 @@ class GameService:
                 db,
                 user_id,
                 skill.id,
-                initial_mastery=0.3,
+                initial_mastery=BKTManager.get_initial_mastery(skill.code),
                 commit=False,
             )
             db.flush()

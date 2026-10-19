@@ -242,7 +242,17 @@ class Answer(Base):
     - response_time: Time taken in milliseconds (optional, >= 0)
     """
     __tablename__ = "answers"
-    __table_args__ = (UniqueConstraint("game_round_id", name="uq_answers_game_round_id"),)
+    __table_args__ = (
+        UniqueConstraint("game_round_id", name="uq_answers_game_round_id"),
+        CheckConstraint(
+            "confidence IS NULL OR (confidence >= 1 AND confidence <= 5)",
+            name="ck_answer_confidence_range",
+        ),
+        CheckConstraint(
+            "response_time IS NULL OR response_time >= 0",
+            name="ck_answer_response_time_non_negative",
+        ),
+    )
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
     user_id: Mapped[str] = mapped_column(ForeignKey("users.id"), nullable=False, index=True)

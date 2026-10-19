@@ -233,6 +233,36 @@ class TestBKTEngine:
         
         assert mastery == pytest.approx(0.1066666667)
 
+    def test_moderate_parameter_variations_can_shift_estimate_without_fitting(self):
+        """Sensitivity check documents that defaults are hypotheses, not learned values."""
+        sequence = [True, False, True, True, False, False, True, False, True, True]
+        defaults = {
+            "p_init": 0.30,
+            "p_guess": 0.20,
+            "p_slip": 0.05,
+            "p_transition": 0.10,
+        }
+        scenarios = [
+            defaults,
+            {**defaults, "p_init": 0.25},
+            {**defaults, "p_init": 0.35},
+            {**defaults, "p_guess": 0.15},
+            {**defaults, "p_guess": 0.25},
+            {**defaults, "p_slip": 0.02},
+            {**defaults, "p_slip": 0.08},
+            {**defaults, "p_transition": 0.05},
+            {**defaults, "p_transition": 0.15},
+        ]
+        estimates = []
+        for parameters in scenarios:
+            engine = BKTEngine(**parameters)
+            mastery = parameters["p_init"]
+            for correct in sequence:
+                mastery = engine.update(mastery, correct)
+            estimates.append(mastery)
+
+        assert max(estimates) - min(estimates) == pytest.approx(0.2142, abs=0.0001)
+
     def test_zero_mastery_edge_case(self):
         """Test update at exactly zero mastery."""
         engine = BKTEngine()

@@ -6,7 +6,7 @@ Handles Answer storage and retrieval.
 
 from sqlalchemy import func
 from sqlalchemy.orm import Session
-from app.models import Answer, GameRound
+from app.models import Answer, GameRound, Question, Skill
 
 
 class AnswerRepository:
@@ -185,5 +185,17 @@ class AnswerRepository:
             .filter(
                 Answer.user_id == user_id,
             )
+            .all()
+        )
+
+    @staticmethod
+    def get_user_skill_history(db: Session, user_id: str) -> list[tuple]:
+        """Return ordered, minimal observations joined to their skill codes."""
+        return (
+            db.query(Answer.id, Answer.correct, Answer.created_at, Skill.code)
+            .join(Question, Answer.question_id == Question.id)
+            .join(Skill, Question.skill_id == Skill.id)
+            .filter(Answer.user_id == user_id)
+            .order_by(Answer.created_at.asc(), Answer.id.asc())
             .all()
         )

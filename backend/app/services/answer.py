@@ -12,6 +12,7 @@ from app.repositories.question_repository import QuestionRepository
 from app.repositories.game_repository import GameRepository
 from app.repositories.skill_repository import SkillRepository
 from app.bkt.manager import BKTManager
+from app.bkt.engine import BKTEngine
 from app.models import GameStatusEnum
 from datetime import datetime
 
@@ -113,11 +114,8 @@ class AnswerService:
                 f"Invalid option {selected_option}. "
                 f"Valid options are: {', '.join(sorted(question.options))}"
             )
-
         if AnswerRepository.get_answers_for_round(db, game_round.id):
             raise AnswerConflictError(f"Round {game_round_id} was already answered")
-
-        # 2. Determine correct
         is_correct = selected_option == question.correct_option
 
         # 3. Identify skill and current state
@@ -130,6 +128,7 @@ class AnswerService:
                 db,
                 user_id,
                 skill.id,
+                initial_mastery=BKTManager.get_initial_mastery(skill.code),
                 commit=False,
             )
             current_mastery = user_skill_state.mastery_probability
@@ -200,7 +199,7 @@ class AnswerService:
                     db,
                     user_id,
                     skill.id,
-                    initial_mastery=0.3,
+                    initial_mastery=BKTManager.get_initial_mastery(skill.code),
                     commit=False,
                 )
             db.commit()
@@ -210,13 +209,48 @@ class AnswerService:
 
         user_skill_states = SkillRepository.get_user_skill_states(db, user_id)
 
+        history_by_skill: dict[str, list[tuple]] = {
+            skill_code: [] for skill_code in BKTManager.VALID_SKILLS
+        }
+        for answer_id, correct, created_at, skill_code in AnswerRepository.get_user_skill_history(
+            db, user_id
+        ):
+            if skill_code in history_by_skill:
+                history_by_skill[skill_code].append((answer_id, correct, created_at))
+
         skills = []
         for state in user_skill_states:
+            skill_code = state.skill.code
+            skill_history = history_by_skill.get(skill_code, [])
+            parameters = BKTManager.get_tracker(skill_code).get_parameters()
+            engine = BKTEngine(**parameters)
+            replayed_mastery = parameters["p_init"]
+            trajectory = []
+            for attempt_number, (_, correct, created_at) in enumerate(skill_history, start=1):
+                replayed_mastery = engine.update(replayed_mastery, bool(correct))
+                if attempt_number <= 5 or attempt_number == len(skill_history):
+                    trajectory.append({
+                        "attempt": attempt_number,
+                        "created_at": created_at.isoformat(),
+                        "mastery_probability": replayed_mastery,
+                    })
+
             skills.append({
                 "skill_id": state.skill_id,
-                "skill_code": state.skill.code,
+                "skill_code": skill_code,
                 "skill_name": state.skill.name,
+                "description": state.skill.description,
                 "mastery_probability": state.mastery_probability,
+                "attempts": len(skill_history),
+                "correct_count": sum(bool(row[1]) for row in skill_history),
+                "incorrect_count": sum(not bool(row[1]) for row in skill_history),
+                "accuracy": (
+                    sum(bool(row[1]) for row in skill_history) / len(skill_history)
+                    if skill_history else None
+                ),
+                "insufficient_evidence": len(skill_history) < 3,
+                "bkt_parameters": parameters,
+                "trajectory": trajectory,
                 "updated_at": state.updated_at.isoformat(),
             })
 
@@ -227,4 +261,6 @@ class AnswerService:
                 (s["updated_at"] for s in skills),
                 default=None,
             ),
+            "bkt_version": "classic-bkt-observation-transition-v1",
+            "parameter_status": "provisional_defaults_not_fitted_to_real_users",
         }
